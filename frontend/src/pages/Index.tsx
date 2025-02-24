@@ -2,12 +2,15 @@ import { useState } from "react";
 import { CourseCard } from "@/components/course-card";
 import { SemesterBlock } from "@/components/semester-block";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Search, Calculator, Plus } from "lucide-react";
+import { GraduationCap, Search, Calculator, Plus, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
+import { useClerk } from '@clerk/clerk-react'
+
 
 interface Course {
   code: string;
@@ -71,7 +74,7 @@ const Index = () => {
     const currentYear = new Date().getFullYear();
     const terms = ["Winter", "Spring", "Summer", "Fall"];
     
-    for (let year = currentYear; year < currentYear + 8; year++) {
+    for (let year = currentYear-10; year < currentYear + 18; year++) {
       for (let term of terms) {
         options.push({
           value: `${term.toLowerCase()}${year}`,
@@ -81,6 +84,14 @@ const Index = () => {
     }
     return options;
   };
+  
+  // since these are react comp gotta do this roundabout method
+  const { signOut } = useClerk()
+  const navigate = useNavigate();
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/")
+  }
 
   const semesterOptions = generateSemesterOptions();
   const weightedGPA = calculateWeightedGPA();
@@ -90,12 +101,12 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-b from-planner-lightGold to-white relative">
       <header className="w-full py-6 bg-white/80 backdrop-blur-sm border-b border-planner-accent/20 sticky top-0 z-50">
         <div className="container flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <a href="/" className="flex items-center gap-2">
             <GraduationCap className="w-8 h-8 text-planner-accent" />
             <h1 className="text-2xl font-medium text-planner-primary">
               Course Planner
             </h1>
-          </div>
+          </a>
           <div className="flex items-center gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-planner-accent/60" />
@@ -112,6 +123,14 @@ const Index = () => {
               className="border-planner-accent/20 text-planner-primary hover:bg-planner-accent/10 hover:text-planner-primary"
             >
               Clear Plan
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleSignOut}
+              className="border-planner-accent/20 text-planner-primary hover:bg-planner-accent/10 hover:text-planner-primary"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
             </Button>
           </div>
         </div>

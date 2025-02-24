@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { useSignIn } from "@clerk/clerk-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, LogIn } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -14,31 +15,51 @@ import {
 import { Label } from "@/components/ui/label";
 
 const Login = () => {
+  const { signIn, isLoaded } = useSignIn();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login attempt with:", { email, password });
+    if (!isLoaded) return;
+    
+    try {
+      const result = await signIn.create({
+        identifier: email,
+        password,
+      });
+
+      if (result.status === "complete") {
+        navigate("/"); // Redirect after login
+      } else {
+        console.error("Unexpected sign-in result:", result);
+      }
+    } catch (err: any) {
+      setError(err.errors[0]?.message || "Login failed");
+    }
   };
 
-  const handleGoogleSignIn = () => {
-    console.log("Google sign in clicked");
+  const handleGoogleSignIn = async () => {
+    if (!isLoaded) return;
+    await signIn.authenticateWithRedirect({
+      strategy: "oauth_google",
+      redirectUrl: "/",
+    });
   };
 
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
       <div className="relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex">
         <div
-        className="absolute inset-0 bg-planner-accent bg-cover bg-center"
-        style={{ backgroundImage: "url('/umbc.jpg')" }}
+          className="absolute inset-0 bg-planner-accent bg-cover bg-center"
+          style={{ backgroundImage: "url('/umbc.jpg')" }}
         />
         <div className="relative z-20 flex items-center text-lg font-medium">
-            <a href="/">
+          <a href="/">
             <h1><GraduationCap /> UMBC</h1>
           </a>
-        </div>
-        <div className="relative z-20 mt-auto">
         </div>
       </div>
       <div className="lg:p-8">
@@ -47,11 +68,12 @@ const Login = () => {
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl text-center">Sign in</CardTitle>
               <CardDescription className="text-center">
-                Enter your email and password to sign in to your account
+                Enter your email and password to sign in
               </CardDescription>
             </CardHeader>
             <form onSubmit={handleSubmit}>
               <CardContent className="grid gap-4">
+                {error && <p className="text-red-500 text-center">{error}</p>}
                 <Button
                   type="button"
                   variant="outline"
@@ -61,10 +83,6 @@ const Login = () => {
                   <svg
                     className="mr-2 h-4 w-4"
                     aria-hidden="true"
-                    focusable="false"
-                    data-prefix="fab"
-                    data-icon="google"
-                    role="img"
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 488 512"
                   >
@@ -105,16 +123,6 @@ const Login = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="remember"
-                    className="h-4 w-4 rounded border-gray-300 text-planner-accent focus:ring-planner-accent"
-                  />
-                  <Label htmlFor="remember" className="text-sm">
-                    Remember me
-                  </Label>
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col gap-4">

@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { useSignUp } from "@clerk/clerk-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, UserPlus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -14,30 +15,58 @@ import {
 import { Label } from "@/components/ui/label";
 
 const Signup = () => {
+  const { signUp, isLoaded } = useSignUp();
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Register attempt with:", { email, password, firstName, lastName });
+    if (!isLoaded) return;
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    try {
+      await signUp.create({
+        firstName,
+        lastName,
+        emailAddress: email,
+        password,
+      });
+
+      // Send email verification
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+
+      navigate("/verify-email"); // Redirect to email verification page
+    } catch (err: any) {
+      setError(err.errors[0]?.message || "Signup failed");
+    }
   };
 
-  const handleGoogleSignIn = () => {
-    console.log("Google sign in clicked");
+  const handleGoogleSignIn = async () => {
+    if (!isLoaded) return;
+    await signUp.authenticateWithRedirect({
+      strategy: "oauth_google",
+    });
   };
 
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
       <div className="relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex">
-      <div
-        className="absolute inset-0 bg-planner-accent bg-cover bg-center"
-        style={{ backgroundImage: "url('/umbc.jpg')" }}
+        <div
+          className="absolute inset-0 bg-planner-accent bg-cover bg-center"
+          style={{ backgroundImage: "url('/umbc.jpg')" }}
         />
         <div className="relative z-20 flex items-center text-lg font-medium">
-            <a href="/">
+          <a href="/">
             <h1><GraduationCap /> UMBC</h1>
           </a>
         </div>
@@ -53,6 +82,7 @@ const Signup = () => {
             </CardHeader>
             <form onSubmit={handleSubmit}>
               <CardContent className="grid gap-4">
+                {error && <p className="text-red-500 text-center">{error}</p>}
                 <Button
                   type="button"
                   variant="outline"
@@ -62,10 +92,6 @@ const Signup = () => {
                   <svg
                     className="mr-2 h-4 w-4"
                     aria-hidden="true"
-                    focusable="false"
-                    data-prefix="fab"
-                    data-icon="google"
-                    role="img"
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 488 512"
                   >
@@ -138,23 +164,6 @@ const Signup = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                   />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="terms"
-                    className="h-4 w-4 rounded border-gray-300 text-planner-accent focus:ring-planner-accent"
-                    required
-                  />
-                  <Label htmlFor="terms" className="text-sm">
-                    I agree to the{" "}
-                    <Link
-                      to="/terms"
-                      className="text-planner-accent hover:text-planner-darkGold"
-                    >
-                      terms and conditions
-                    </Link>
-                  </Label>
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col gap-4">

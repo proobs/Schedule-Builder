@@ -138,12 +138,12 @@ const Home = () => {
       <Navbar />
       <div className="container flex flex-col items-center justify-center flex-grow py-12 text-center pt-24">
         <div className="space-y-6 animate-fade-in max-w-[800px] mx-auto">
-          <div className="flex items-center justify-center gap-3">
+          <a href="/" className="flex items-center justify-center gap-3">
             <GraduationCap className="w-12 h-12 text-planner-accent" />
             <h1 className="text-4xl font-bold text-planner-primary">
               UMBC Course Planner
             </h1>
-          </div>
+          </a>
           
           <p className="max-w-[600px] text-lg text-planner-secondary mx-auto">
             Plan your academic journey with our interactive 4-year course planning tool.
