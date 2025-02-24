@@ -12,7 +12,7 @@ function App() {
 
   return (
     <div>
-      <h1>Message from Flask:</h1>
+      <h1 className="text-3xl font-bold underline">Message from Flask:</h1>
       <p>{message}</p>
     </div>
   );
