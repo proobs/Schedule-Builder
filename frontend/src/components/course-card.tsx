@@ -9,7 +9,12 @@ interface CourseCardProps {
   code: string;
   name: string;
   credits: number;
-  prerequisites?: string[];
+  prerequisites?: string | null;
+  components?: string;
+  attributes?: string[];
+  consent?: string;
+  courseId?: string;
+  grading?: string;
   isAvailable?: boolean;
   className?: string;
   gpa?: number;
@@ -20,7 +25,12 @@ export const CourseCard = ({
   code,
   name,
   credits,
-  prerequisites = [],
+  prerequisites,
+  components = "Lecture",
+  attributes = [],
+  consent = "No Special Consent Required",
+  courseId = "",
+  grading = "Graded",
   isAvailable = true,
   className,
   gpa = 0,
@@ -89,19 +99,37 @@ export const CourseCard = ({
               />
             </div>
 
-            <div>
-              <h4 className="text-xs font-semibold text-planner-primary">Description</h4>
-              <p className="text-xs text-gray-600 mt-1">
-                This is a sample description for {code}. In a real application, this would contain the actual course description.
-              </p>
-            </div>
+            {courseId && (
+              <div>
+                <h4 className="text-xs font-semibold text-planner-primary">Course ID</h4>
+                <p className="text-xs text-gray-600 mt-1">
+                  {courseId}
+                </p>
+              </div>
+            )}
             
-            {prerequisites.length > 0 && (
+            {prerequisites && prerequisites.length > 0 ? (
               <div>
                 <h4 className="text-xs font-semibold text-planner-primary">Prerequisites</h4>
                 <ul className="mt-1 text-xs text-gray-600">
-                  {prerequisites.map((prereq) => (
-                    <li key={prereq}>{prereq}</li>
+                  {prerequisites}
+                </ul>
+              </div>
+            ) : (
+              <div>
+                <h4 className="text-xs font-semibold text-planner-primary">Prerequisites</h4>
+                <p className="text-xs text-gray-600 mt-1">
+                  None
+                </p>
+              </div>
+            )}
+
+            {attributes && attributes.length > 0 && (
+              <div>
+                <h4 className="text-xs font-semibold text-planner-primary">Attributes</h4>
+                <ul className="mt-1 text-xs text-gray-600">
+                  {attributes.map((attribute, index) => (
+                    <li key={`${attribute}-${index}`}>{attribute}</li>
                   ))}
                 </ul>
               </div>
@@ -116,7 +144,19 @@ export const CourseCard = ({
                 </div>
                 <div>
                   <span className="font-medium">Level:</span>{" "}
-                  {code.split(" ")[1][0]}00
+                  {code.split(" ")[1]?.[0]}00
+                </div>
+                <div>
+                  <span className="font-medium">Components:</span>{" "}
+                  {components}
+                </div>
+                <div>
+                  <span className="font-medium">Consent:</span>{" "}
+                  {consent === "No Special Consent Required" ? "Not Required" : "Required"}
+                </div>
+                <div className="col-span-2">
+                  <span className="font-medium">Grading:</span>{" "}
+                  {grading}
                 </div>
               </div>
             </div>

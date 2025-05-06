@@ -4,89 +4,6 @@ import { Link } from "react-router-dom";
 import { Navbar } from "../components/navbar";
 
 
-const Testimonials = () => {
-  const testimonials = [
-    {
-      text: "The AI advisor helped me explore career paths I hadn't even considered! It's like having a personal mentor available 24/7.",
-      author: "Sarah J.",
-      role: "Computer Science Major"
-    },
-    {
-      text: "As someone who switched majors twice, this planner saved me so much stress. The AI suggestions for course substitutions were incredibly helpful.",
-      author: "Michael R.",
-      role: "Biology Major"
-    },
-    {
-      text: "The AI-powered prerequisite checker caught scheduling conflicts before they became problems. Truly revolutionary for academic planning!",
-      author: "Emily K.",
-      role: "Information Systems Major"
-    },
-    {
-      text: "Having an AI advisor available to answer questions at any time made a huge difference in my academic planning. It's like having a knowledgeable friend guiding you.",
-      author: "James L.",
-      role: "Mathematics Major"
-    },
-    {
-      text: "As an advisor, this tool complements our work perfectly. The AI helps students come to meetings better prepared with thoughtful questions.",
-      author: "Dr. Thompson",
-      role: "Academic Advisor"
-    },
-    {
-      text: "The course recommendations from the AI are surprisingly accurate. It suggested electives that perfectly aligned with my career goals.",
-      author: "Alex W.",
-      role: "Psychology Major"
-    }
-  ];
-
-  return (
-    <section className="py-16 bg-white overflow-hidden">
-      <div className="container">
-        <h2 className="text-3xl font-bold text-center text-planner-primary mb-12">
-          What Our Users Say
-        </h2>
-        <div className="relative">
-          <div className="flex gap-8 overflow-x-auto pb-8 animate-scroll no-scrollbar">
-            <div className="flex gap-8 animate-[scroll_60s_linear_infinite]">
-              {testimonials.map((testimonial, index) => (
-                <div 
-                  key={index}
-                  className="p-6 rounded-lg bg-planner-lightGold border border-planner-accent/20 relative min-w-[300px] max-w-[300px] flex-shrink-0 mt-8"
-                >
-                  <Quote className="w-8 h-8 text-planner-accent absolute -top-4 -left-4 bg-white rounded-full p-1" />
-                  <p className="text-planner-secondary mb-4 italic">
-                    "{testimonial.text}"
-                  </p>
-                  <div className="mt-4">
-                    <p className="font-semibold text-planner-primary">{testimonial.author}</p>
-                    <p className="text-sm text-planner-secondary">{testimonial.role}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-8 animate-[scroll_60s_linear_infinite]" aria-hidden="true">
-              {testimonials.map((testimonial, index) => (
-                <div 
-                  key={`duplicate-${index}`}
-                  className="p-6 rounded-lg bg-planner-lightGold border border-planner-accent/20 relative min-w-[300px] max-w-[300px] flex-shrink-0 mt-8"
-                >
-                  <Quote className="w-8 h-8 text-planner-accent absolute -top-4 -left-4 bg-white rounded-full p-1" />
-                  <p className="text-planner-secondary mb-4 italic">
-                    "{testimonial.text}"
-                  </p>
-                  <div className="mt-4">
-                    <p className="font-semibold text-planner-primary">{testimonial.author}</p>
-                    <p className="text-sm text-planner-secondary">{testimonial.role}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
 const Footer = () => {
   return (
     <footer className="bg-planner-primary text-white py-12">
@@ -199,7 +116,6 @@ const Home = () => {
           </div>
         </div>
       </div>
-      <Testimonials />
       <Footer />
     </div>
   );
