@@ -18,12 +18,6 @@ export const Navbar = () => {
             >
               <Link to="/login">Sign In</Link>
             </Button>
-            <Button 
-              asChild 
-              className="bg-planner-primary hover:bg-planner-secondary"
-            >
-              <Link to="/register">Register</Link>
-            </Button>
           </div>
         </div>
       </nav>

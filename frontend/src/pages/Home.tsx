@@ -36,7 +36,6 @@ const Footer = () => {
             <h3 className="text-lg font-semibold">Quick Links</h3>
             <div className="space-y-2">
               <Link to="/login" className="block text-gray-300 hover:text-planner-accent">Sign In</Link>
-              <Link to="/register" className="block text-gray-300 hover:text-planner-accent">Create Account</Link>
               <a href="https://www.umbc.edu" className="block text-gray-300 hover:text-planner-accent" target="_blank" rel="noopener noreferrer">UMBC Website</a>
             </div>
           </div>
@@ -76,14 +75,7 @@ const Home = () => {
             >
               <Link to="/login">Sign In</Link>
             </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="text-lg w-48 border-planner-accent text-planner-primary hover:bg-planner-accent/10"
-            >
-              <Link to="/register">Create Account</Link>
-            </Button>
+
           </div>
 
           <div className="pt-8">

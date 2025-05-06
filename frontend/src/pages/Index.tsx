@@ -2,27 +2,33 @@ import { useState, useEffect } from "react";
 import { CourseCard } from "@/components/course-card";
 import { SemesterBlock } from "@/components/semester-block";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Search, Calculator, Plus, LogOut, Calendar1 } from "lucide-react";
+import { GraduationCap, Search, Calculator, Plus, LogOut, Calendar1, AlertTriangle, Save, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { useClerk } from '@clerk/clerk-react'
-import { db } from "@/App";
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { useUser } from "@clerk/clerk-react";
+import { toast } from "@/components/ui/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+import courseData from "../data/course_data.json";
+import majorData from "../data/majors.json"
+import { getUserData, initializeUserIfNeeded, updateUserCourses } from "../lib/userService";
 
 interface Course {
   code: string;
   name: string;
   credits: number;
-  prerequisites?: string[] | null;
+  prerequisites?: string | null;
   components?: string;
-  attributes?: string[];
+  attributes?: string[] | null;
   consent?: string;
   courseId?: string;
   grading?: string;
+  description?: string;
+  gritview?: string;
   gpa?: number;
   semester?: string;
   term?: string;
@@ -36,10 +42,16 @@ interface SemesterInfo {
   courses: Course[];
 }
 
+interface TemplateInfo {
+  term: string;
+  year: number;
+  coursesList: string[];
+}
+
 // Helper function to generate a sorting value for terms
 const getTermSortValue = (term: string) => {
   const termValues = { Winter: 0, Spring: 1, Summer: 2, Fall: 3 };
-  return termValues[term] || 0;
+  return termValues[term as keyof typeof termValues] || 0;
 };
 
 // Helper function to sort semesters chronologically
@@ -54,6 +66,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [courses, setCourses] = useState<Course[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
   const [allCourseOptions, setAllCourseOptions] = useState<string[]>([]);
   const [subjectLabels, setSubjectLabels] = useState<string[]>([]);
   const [selectedSubject, setSelectedSubject] = useState("");
@@ -61,6 +74,18 @@ const Index = () => {
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedSemester, setSelectedSemester] = useState("");
   const [semesters, setSemesters] = useState<SemesterInfo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [userInitialized, setUserInitialized] = useState(false);
+  
+  // Major template related state
+  const [majorTemplates, setMajorTemplates] = useState<string[]>([]);
+  const [selectedMajorTemplate, setSelectedMajorTemplate] = useState("");
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const navigate = useNavigate();
   
   const calculateWeightedGPA = () => {
     const totalCredits = courses.reduce((sum, course) => sum + course.credits, 0);
@@ -71,18 +96,129 @@ const Index = () => {
     return totalCredits === 0 ? 0 : (weightedSum / totalCredits);
   };
 
+  // Initialize the user and load their data from Firestore
   useEffect(() => {
-    const fetchCourses = async () => {
+    const initializeUser = async () => {
+      if (!user) return;
+      
       try {
-        // Reference the 'courses' collection
-        const coursesRef = collection(db, 'courses');
+        setIsLoading(true);
+        
+        // Initialize user if they don't exist in Firestore
+        const userData = await initializeUserIfNeeded(user.id, {
+          email: user.primaryEmailAddress?.emailAddress,
+          name: user.fullName,
+        });
+        
+        if (userData && userData.courses && userData.courses.length > 0) {
+          // User exists and has courses - load them
+          setCourses(userData.courses);
+          toast({
+            title: "Data loaded",
+            description: "Your courses have been loaded from your account.",
+            variant: "default"
+          });
+        } else {
+          // User exists but has no courses - check localStorage as fallback
+          const localData = localStorage.getItem("coursesData");
+          if (localData) {
+            const parsedData = JSON.parse(localData);
+            setCourses(parsedData);
+            
+            // Save local data to Firestore
+            if (parsedData.length > 0) {
+              await updateUserCourses(user.id, parsedData);
+              toast({
+                title: "Data synchronized",
+                description: "Your local courses have been saved to your account.",
+                variant: "default"
+              });
+            }
+          }
+        }
+        
+        setUserInitialized(true);
+      } catch (error) {
+        console.error("Error initializing user:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load your data. Using local storage instead.",
+          variant: "destructive"
+        });
+        
+        // Fallback to localStorage if Firestore fails
+        const localData = localStorage.getItem("coursesData");
+        if (localData) {
+          setCourses(JSON.parse(localData));
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    initializeUser();
+  }, [user]);
 
-        // Fetch all documents in the collection
-        const querySnapshot = await getDocs(coursesRef);
+  // Load major templates from the imported JSON directly
+  useEffect(() => {
+    try {
+      setIsLoadingTemplates(true);
+      
+      // Use the already imported majorData instead of fetching it again
+      if (majorData) {
+        setMajorTemplates(Object.keys(majorData));
+      } else {
+        throw new Error("Major data not found");
+      }
+    } catch (error) {
+      console.error("Error loading major templates:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load major templates. Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  }, []);
 
-        // Map through the snapshot to get each document's ID
-        const courseNames = querySnapshot.docs.map((doc) => doc.id);
-        console.log("Fetched courses:", courseNames);
+  // Save changes to Firestore whenever courses change
+  useEffect(() => {
+    const saveCourses = async () => {
+      // Skip saving if initial load hasn't completed or user isn't initialized
+      if (isLoading || !userInitialized || !user) return;
+      
+      try {
+        setIsSaving(true);
+        await updateUserCourses(user.id, courses);
+        
+        // Also save to localStorage as backup
+        localStorage.setItem("coursesData", JSON.stringify(courses));
+      } catch (error) {
+        console.error("Error saving courses to Firestore:", error);
+        toast({
+          title: "Sync error",
+          description: "Failed to save your changes to the cloud. Your data is saved locally.",
+          variant: "destructive",
+          action: <ToastAction altText="Retry">Retry</ToastAction>,
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    };
+    
+    // Only save if user is initialized and courses have changed
+    if (userInitialized && !isLoading && user) {
+      saveCourses();
+    }
+  }, [courses, user, userInitialized, isLoading]);
+
+  // Load course options from local JSON file
+  useEffect(() => {
+    const loadCourseOptions = () => {
+      try {
+        // Extract course names from the JSON data
+        const courseNames = Object.keys(courseData);
         setAllCourseOptions(courseNames);
         
         // Extract unique subject labels (e.g., "CMSC", "MATH")
@@ -96,11 +232,11 @@ const Index = () => {
         
         setSubjectLabels(Array.from(subjects).sort());
       } catch (error) {
-        console.error("Error fetching course names:", error);
+        console.error("Error loading course data:", error);
       }
     };
 
-    fetchCourses();
+    loadCourseOptions();
   }, []);
 
   // Filter courses when subject changes
@@ -199,6 +335,97 @@ const Index = () => {
     }
   }, [courses, searchQuery]);
 
+  // Handle applying a major template
+  const handleSelectMajorTemplate = (templateName: string) => {
+    if (!templateName) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Use the imported majorData instead of fetching it
+      if (!majorData[templateName]) {
+        console.error("Major template not found:", templateName);
+        toast({
+          title: "Error",
+          description: "Template not found. Please select another template.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Show confirmation dialog if there are existing courses
+      if (courses.length > 0) {
+        if (!window.confirm("Applying a template will replace your current plan. Continue?")) {
+          setSelectedMajorTemplate("");
+          return;
+        }
+      }
+      
+      // Get the courses for this template
+      const templateCourses: TemplateInfo[] = majorData[templateName];
+      
+      // Clear existing courses
+      let newCourses: Course[] = [];
+      
+      // Add each course from the template
+      for (const semesterInfo of templateCourses) {
+        const { term, year, coursesList } = semesterInfo;
+        
+        for (const courseCode of coursesList) {
+          // Check if course exists in course data
+          const courseDetails = (courseData as Record<string, any>)[courseCode];
+          
+          if (courseDetails) {
+            const newCourse: Course = {
+              code: courseCode,
+              name: courseDetails['Course Title'] || `${courseCode}`,
+              credits: courseDetails['Credits'] || 3,
+              prerequisites: courseDetails['Prerequisites'] || null,
+              components: courseDetails['Components'] || "Lecture",
+              attributes: courseDetails['Attributes'] || null,
+              consent: courseDetails['Consent'] || "No Special Consent Required",
+              courseId: courseDetails['Course ID'] || "",
+              grading: courseDetails['Grading'] || "Graded",
+              description: courseDetails['Description'] || "",
+              gritview: courseDetails['gritview'] || "",
+              gpa: 0,
+              semester: `${term.toLowerCase()}${year}`,
+              term,
+              year
+            };
+            
+            newCourses.push(newCourse);
+          } else {
+            // Course not found in data, log error but continue
+            console.warn(`Course ${courseCode} not found in course data`);
+          }
+        }
+      }
+      
+      // Update the courses state
+      setCourses(newCourses);
+      
+      // Reset selected template
+      setSelectedMajorTemplate("");
+      
+      toast({
+        title: "Template applied",
+        description: `${templateName} plan has been loaded successfully.`,
+        variant: "default"
+      });
+      
+    } catch (error) {
+      console.error("Error applying major template:", error);
+      toast({
+        title: "Error",
+        description: "Failed to apply the selected template. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGPAChange = (courseCode: string, newGPA: string) => {
     const gpaValue = parseFloat(newGPA);
     if (isNaN(gpaValue) || gpaValue < 0 || gpaValue > 4.0) return;
@@ -208,6 +435,29 @@ const Index = () => {
         ? { ...course, gpa: gpaValue }
         : course
     ));
+  };
+
+  const handleClearPlan = async () => {
+    setCourses([]);
+    setIsClearDialogOpen(false);
+    
+    // Clear from localStorage
+    localStorage.removeItem("coursesData");
+    
+    // Clear from Firestore if user is authenticated
+    if (user) {
+      try {
+        await updateUserCourses(user.id, []);
+      } catch (error) {
+        console.error("Error clearing courses in Firestore:", error);
+      }
+    }
+    
+    toast({
+      title: "Plan cleared",
+      description: "Your course plan has been cleared.",
+      variant: "default"
+    });
   };
 
   const generateSemesterOptions = () => {
@@ -226,21 +476,18 @@ const Index = () => {
     return options;
   };
 
-  const handleAddCourse = async () => {
+  const handleAddCourse = () => {
     if (!selectedCourse || !selectedSemester) return;
     
     try {
-      // Get course details from Firestore
-      const courseRef = collection(db, 'courses');
-      const q = query(courseRef, where('__name__', '==', selectedCourse));
-      const querySnapshot = await getDocs(q);
+      // Get course details from the local JSON data
+      const courseDetails = (courseData as Record<string, any>)[selectedCourse];
       
-      if (querySnapshot.empty) {
+      if (!courseDetails) {
         console.error("Course not found:", selectedCourse);
         return;
       }
       
-      const courseData = querySnapshot.docs[0].data();
       const semesterParts = selectedSemester.match(/([a-z]+)(\d+)/i);
       
       if (!semesterParts) {
@@ -254,14 +501,16 @@ const Index = () => {
       // Create new course object with all the available fields
       const newCourse: Course = {
         code: selectedCourse,
-        name: courseData['Course Title'] || `${selectedCourse}`,
-        credits: courseData['Credits'] || 3,
-        prerequisites: courseData['Prerequisites'] || [],
-        components: courseData['Components'] || "Lecture",
-        attributes: courseData['Attributes'] || [],
-        consent: courseData['Consent'] || "No Special Consent Required",
-        courseId: courseData['Course ID'] || "",
-        grading: courseData['Grading'] || "Graded",
+        name: courseDetails['Course Title'] || `${selectedCourse}`,
+        credits: courseDetails['Credits'] || 3,
+        prerequisites: courseDetails['Prerequisites'] || null,
+        components: courseDetails['Components'] || "Lecture",
+        attributes: courseDetails['Attributes'] || null,
+        consent: courseDetails['Consent'] || "No Special Consent Required",
+        courseId: courseDetails['Course ID'] || "",
+        grading: courseDetails['Grading'] || "Graded",
+        description: courseDetails['Description'] || "",
+        gritview: courseDetails['gritview'] || "",
         gpa: 0,
         semester: selectedSemester,
         term,
@@ -276,33 +525,56 @@ const Index = () => {
       setSelectedSemester("");
       setIsAddDialogOpen(false);
       
+      toast({
+        title: "Course added",
+        description: `${selectedCourse} has been added to your plan.`,
+        variant: "default"
+      });
+      
     } catch (error) {
       console.error("Error adding course:", error);
+      
+      toast({
+        title: "Error",
+        description: "There was a problem adding the course. Please try again.",
+        variant: "destructive"
+      });
     }
   };
-  useEffect(() => {
-    const savedCourses = localStorage.getItem("coursesData");
-    if (savedCourses) {
-      setCourses(JSON.parse(savedCourses));
-    }
-  }, []);
-
-  // Save courses to local storage whenever they change
-  useEffect(() => {
-    localStorage.setItem("coursesData", JSON.stringify(courses));
-  }, [courses]);
   
-  // since these are react comp gotta do this roundabout method
-  const { signOut } = useClerk()
-  const navigate = useNavigate();
   const handleSignOut = async () => {
     await signOut();
     navigate("/")
   }
 
+  const handleRemoveCourse = (courseCode: string) => {
+    // Update local state
+    const updatedCourses = courses.filter(course => course.code !== courseCode);
+    setCourses(updatedCourses);
+    
+    // Show toast notification
+    toast({
+      title: "Course removed",
+      description: `Course ${courseCode} has been removed from your plan.`,
+      variant: "default"
+    });
+  };
+
   const semesterOptions = generateSemesterOptions();
   const weightedGPA = calculateWeightedGPA();
   const totalCredits = courses.reduce((sum, course) => sum + course.credits, 0);
+
+  // Loading state while initializing user data
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-planner-lightGold to-white flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <GraduationCap className="w-12 h-12 text-planner-accent animate-pulse" />
+          <h2 className="text-xl font-medium text-planner-primary">Loading your courses...</h2>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-planner-lightGold to-white relative">
@@ -315,7 +587,7 @@ const Index = () => {
             </h1>
           </a>
           <div className="flex items-center gap-4">
-            {/* <div className="relative">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-planner-accent/60" />
               <Input
                 type="search"
@@ -324,14 +596,42 @@ const Index = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-            </div> */}
-            <Button 
-              variant="outline" 
-              className="border-planner-accent/20 text-planner-primary hover:bg-planner-accent/10 hover:text-planner-primary"
-              onClick={() => setCourses([])}
-            >
-              Clear Plan
-            </Button>
+            </div>
+            <Dialog open={isClearDialogOpen} onOpenChange={setIsClearDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="border-planner-accent/20 text-planner-primary hover:bg-planner-accent/10 hover:text-planner-primary"
+                  disabled={courses.length === 0}
+                >
+                  Clear Plan
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    Confirm Clear Plan
+                  </DialogTitle>
+                  <DialogDescription className="pt-2">
+                    Are you sure you want to clear your entire course plan? This action cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="flex justify-end gap-3 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsClearDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    variant="destructive"
+                    onClick={handleClearPlan}
+                  >
+                    Clear Plan
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             <Button
               variant="outline"
               onClick={handleSignOut}
@@ -356,31 +656,58 @@ const Index = () => {
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <span className="text-sm text-gray-600">Total Credits</span>
-              <p className="text-lg font-medium text-planner-primary">{totalCredits}</p>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <span className="text-sm text-gray-600">Total Credits</span>
+                <p className="text-lg font-medium text-planner-primary">{totalCredits}</p>
+              </div>
+              {isSaving && (
+                <div className="flex items-center text-planner-accent text-sm">
+                  <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                  Syncing...
+                </div>
+              )}
             </div>
           </div>
         </Card>
       </div>
-      {(semesters.length === 0)&& (
-      <div className="container py-2 w-1/2 mx-auto">
-      <Card className="p-4 bg-white/90 backdrop-blur-sm border-planner-accent/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Calendar1 className="w-5 h-5 text-planner-accent m-4" />
- 
-              <Select>
-                <SelectTrigger id="majorTemplate" className="w-[500px]">
-                  <SelectValue placeholder="Select a Major Template" />
+      
+      {(semesters.length === 0) && (
+        <div className="container py-2 w-1/2 mx-auto">
+          <Card className="p-4 bg-white/90 backdrop-blur-sm border-planner-accent/20">
+            <div className="flex flex-col">
+              <div className="flex items-center mb-3">
+                <h3 className="text-lg font-medium text-planner-primary">Choose Major Template</h3>
+              </div>
+              <Select 
+                value={selectedMajorTemplate} 
+                onValueChange={(value) => {
+                  setSelectedMajorTemplate(value);
+                  handleSelectMajorTemplate(value);
+                }}
+                disabled={isLoadingTemplates}
+              >
+                <SelectTrigger id="majorTemplate" className="w-full">
+                  <SelectValue placeholder={isLoadingTemplates ? "Loading templates..." : "Select a Major Template"} />
                 </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {majorTemplates.length > 0 ? (
+                    majorTemplates.map((template) => (
+                      <SelectItem key={template} value={template}>
+                        {template}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="loading" disabled>
+                      {isLoadingTemplates ? "Loading templates..." : "No templates available"}
+                    </SelectItem>
+                  )}
+                </SelectContent>
               </Select>
             </div>
-          </div>
-        </Card>
-      </div>)}
-
-
+          </Card>
+        </div>
+      )}
 
       <main className="container py-6">
         <div className="max-w-[1200px] mx-auto">
@@ -399,12 +726,24 @@ const Index = () => {
                     credits={semesterCredits}
                     courses={semester.courses}
                     onGPAChange={handleGPAChange}
+                    onAddCourse={(newCourse) => {
+                      // Add the new course to your state
+                      setCourses(prevCourses => [...prevCourses, newCourse]);
+                      
+                      // Show toast notification if desired
+                      toast({
+                        title: "Course added",
+                        description: `${newCourse.code} has been added to your plan.`,
+                        variant: "default"
+                      });
+                    }}
                   >
                     {semester.courses.map((course) => (
                       <CourseCard 
                         key={course.code} 
                         {...course} 
                         onGPAChange={(newGPA) => handleGPAChange(course.code, newGPA)}
+                        onRemove={handleRemoveCourse}
                       />
                     ))}
                   </SemesterBlock>
@@ -414,7 +753,7 @@ const Index = () => {
               <div className="col-span-3 text-center py-12 text-gray-500">
                 <GraduationCap className="w-12 h-12 mx-auto mb-4 text-planner-accent/40" />
                 <h3 className="text-xl font-medium mb-2">No courses added</h3>
-                <p className="mb-4">Click the + button to start building or choose a template 😎</p>
+                <p className="mb-4">Click the + button to start building your plan or select a template above 😎</p>
               </div>
             )}
           </div>

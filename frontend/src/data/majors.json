@@ -1,0 +1,130 @@
+{
+    "Computer Science": [
+      {
+        "term": "Fall",
+        "year": 2023,
+        "coursesList": ["CMSC 201", "MATH 151"]
+      },
+      {
+        "term": "Spring",
+        "year": 2024,
+        "coursesList": ["CMSC 202", "CMSC 203", "MATH 152"]
+      },
+      {
+        "term": "Fall",
+        "year": 2024,
+        "coursesList": ["CMSC 313", "CMSC 331", "MATH 221"]
+      },
+      {
+        "term": "Spring" ,
+        "year": 2025,
+        "coursesList": ["CMSC 341", "CMSC 304", "STAT 355"]
+      },
+      {
+        "term": "Fall",
+        "year": 2025,
+        "coursesList": ["CMSC 421", "CMSC 441", "CMSC 471"]
+      },
+      {
+        "term": "Spring",
+        "year": 2026,
+        "coursesList": ["CMSC 447", "CMSC 461", "CMSC 481"]
+      }
+    ],
+    "Computer Science - Data Science": [
+      {
+        "term": "Fall",
+        "year": 2023,
+        "coursesList": ["CMSC 201", "MATH 151"]
+      },
+      {
+        "term": "Spring",
+        "year": 2024,
+        "coursesList": ["CMSC 202", "CMSC 203", "MATH 152"]
+      },
+      {
+        "term": "Fall",
+        "year": 2024,
+        "coursesList": ["CMSC 313", "CMSC 331", "MATH 221"]
+      },
+      {
+        "term": "Spring",
+        "year": 2025,
+        "coursesList": ["CMSC 341", "CMSC 304", "STAT 355"]
+      },
+      {
+        "term": "Fall",
+        "year": 2025,
+        "coursesList": ["CMSC 421", "CMSC 436", "CMSC 462"]
+      },
+      {
+        "term": "Spring",
+        "year": 2026,
+        "coursesList": ["CMSC 447", "CMSC 461", "CMSC 478"]
+      }
+    ],
+    "Computer Science - Cyber Security": [
+      {
+        "term": "Fall",
+        "year": 2023,
+        "coursesList": ["CMSC 201", "MATH 151"]
+      },
+      {
+        "term": "Spring",
+        "year": 2024,
+        "coursesList": ["CMSC 202", "CMSC 203", "MATH 152"]
+      },
+      {
+        "term": "Fall",
+        "year": 2024,
+        "coursesList": ["CMSC 313", "CMSC 331", "MATH 221"]
+      },
+      {
+        "term": "Spring",
+        "year": 2025,
+        "coursesList": ["CMSC 341", "CMSC 304", "STAT 355"]
+      },
+      {
+        "term": "Fall",
+        "year": 2025,
+        "coursesList": ["CMSC 421", "CMSC 426", "CMSC 443"]
+      },
+      {
+        "term": "Spring",
+        "year": 2026,
+        "coursesList": ["CMSC 447", "CMSC 449", "CMSC 487"]
+      }
+    ],
+    "Computer Science - AI/ML": [
+      {
+        "term": "Fall",
+        "year": 2023,
+        "coursesList": ["CMSC 201", "MATH 151"]
+      },
+      {
+        "term": "Spring",
+        "year": 2024,
+        "coursesList": ["CMSC 202", "CMSC 203", "MATH 152"]
+      },
+      {
+        "term": "Fall",
+        "year": 2024,
+        "coursesList": ["CMSC 313", "CMSC 331", "MATH 221"]
+      },
+      {
+        "term": "Spring",
+        "year": 2025,
+        "coursesList": ["CMSC 341", "CMSC 304", "STAT 355"]
+      },
+      {
+        "term": "Fall",
+        "year": 2025,
+        "coursesList": ["CMSC 421", "CMSC 471", "CMSC 475"]
+      },
+      {
+        "term": "Spring",
+        "year": 2026,
+        "coursesList": ["CMSC 447", "CMSC 473", "CMSC 478"]
+      }
+    ]
+  }
